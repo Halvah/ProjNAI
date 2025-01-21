@@ -1,12 +1,12 @@
-from transformers import RobertaTokenizer, RobertaForSequenceClassification, Trainer, TrainingArguments, get_linear_schedule_with_warmup
 from sklearn.metrics import classification_report
+from transformers import AlbertTokenizer, AlbertModel, AlbertForSequenceClassification, Trainer, TrainingArguments, get_linear_schedule_with_warmup
 from datasets import Dataset
 import pandas as pd
 import torch
 from torch.optim import AdamW
 
-def tokenize_function(data):
-    return tokenizer(data["text"], truncation=True, padding="max_length", max_length=512)
+def tokenize_function(example):
+    return tokenizer(example["text"], truncation=True, padding="max_length", max_length=512)
 
 def convert_to_dataset(df):
     return Dataset.from_pandas(df[['text', 'label']])
@@ -15,12 +15,10 @@ print("PyTorch version:", torch.__version__)
 print("CUDA available:", torch.cuda.is_available())
 print("CUDA version:", torch.version.cuda)
 
-print("Getting model...")
+MODEL_NAME = "albert-base-v2"
 
-MODEL_NAME = "hamzab/roberta-fake-news-classification"
-
-tokenizer = RobertaTokenizer.from_pretrained(MODEL_NAME)
-model = RobertaForSequenceClassification.from_pretrained(MODEL_NAME, num_labels=2)
+tokenizer = AlbertTokenizer.from_pretrained(MODEL_NAME)
+model = AlbertForSequenceClassification.from_pretrained(MODEL_NAME, num_labels=2)
 
 print("Getting data...")
 train_data = pd.read_csv("../../data/processed/train.csv")
@@ -49,9 +47,9 @@ train_dataset = train_dataset.map(tokenize_function, batched=True)
 val_dataset = val_dataset.map(tokenize_function, batched=True)
 test_dataset = test_dataset.map(tokenize_function, batched=True)
 
-train_dataset = train_dataset.with_format("torch")
-val_dataset = val_dataset.with_format("torch")
-test_dataset = test_dataset.with_format("torch")
+train_dataset = train_dataset.with_format("torch", columns=["input_ids", "attention_mask", "label"])
+val_dataset = val_dataset.with_format("torch", columns=["input_ids", "attention_mask", "label"])
+test_dataset = test_dataset.with_format("torch", columns=["input_ids", "attention_mask", "label"])
 
 training_args = TrainingArguments(
     output_dir="./outputs",
@@ -68,15 +66,28 @@ training_args = TrainingArguments(
     gradient_accumulation_steps=4
 )
 
+# optimizer = AdamW(model.parameters(), lr=2e-5)
+#
+# num_training_steps = len(train_data) * training_args.num_train_epochs
+#
+# scheduler = get_linear_schedule_with_warmup(
+#     optimizer,
+#     num_warmup_steps=0,
+#     num_training_steps=num_training_steps
+# )
+
 trainer = Trainer(
     model=model,
     args=training_args,
     train_dataset=train_dataset,
     eval_dataset=val_dataset,
-    tokenizer=tokenizer
+    tokenizer=tokenizer,
+    # optimizers= {optimizer, scheduler}
 )
 
 print("Starting training...")
+
+trainer.train()
 
 training_loss = trainer.train().training_loss
 evaluation_loss = trainer.evaluate()['eval_loss']
@@ -89,6 +100,7 @@ with open("./outputs/roberta-fine-tuned/losses_and_classification.txt", 'w') as 
     f.write("Classification Report:\n")
     f.write(report)
 
-model.save_pretrained("./outputs/roberta-fine-tuned-3-epoch/model")
+model.save_pretrained("./outputs/albert-fine-tuned/model")
 
-tokenizer.save_pretrained("./outputs/roberta-fine-tuned-3-epoch/tokenizer")
+tokenizer.save_pretrained("./outputs/albert-fine-tuned/tokenizer")
+
