@@ -10,7 +10,7 @@
   />
   <style>
     body {
-      background: url("../assets/bg.jpg");
+      background: url("../static/assets/bg.jpg");
       background-repeat: no-repeat;
       background-size: cover;
     }
@@ -43,38 +43,42 @@
 
   <div id="results" class="custom-box w-50 mt-3">RESULT WILL BE PLACED HERE!</div>
 
-  <script type="module">
-    import NewsAPI from './node_modules/newsapi/dist/index.js'; 
-    const newsapi = new NewsAPI('231ce76baa704153963b564e7e190918');
-  
-    newsapi.v2.topHeadlines({
-      sources: 'bbc-news,the-verge',
-      q: 'Top News',
-      category: 'business',
-      language: 'en',
-      country: 'us'
-    }).then(response => {
-      console.log(response);
-    });
-  
-    window.classifyNews = function() {
+  <script>
+    async function classifyNews() {
       const text = document.getElementById('newsInput').value.trim();
       if (!text) {
         alert('Please enter some news text.');
         return;
       }
-  
-      newsapi.v2.topHeadlines({
-        sources: 'bbc-news,the-verge',
-        q: 'Top News',
-        category: 'business',
-        language: 'en',
-        country: 'us'
-      }).then(response => {
-        console.log(response);
-      });
+
+      try {
+        const response = await fetch('http://127.0.0.1:5000/analyze', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ news_text: text }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to classify news.');
+        }
+
+        const result = await response.json();
+        document.getElementById('results').innerHTML = `
+          <h5>Fake News Detection:</h5>
+          <p>BERT: ${result['Fake News Detection']['predictions']['bert']}</p>
+          <p>ALBERT: ${result['Fake News Detection']['predictions']['albert']}</p>
+          <p>RoBERTa: ${result['Fake News Detection']['predictions']['roberta']}</p>
+          <h5>Bias Analysis:</h5>
+          <pre>${JSON.stringify(result['Bias Analysis'], null, 2)}</pre>
+        `;
+      } catch (error) {
+        console.error(error);
+        alert('An error occurred while processing the news.');
+      }
     }
-  
+
     function scrapeRandomNews() {
       alert('This function will scrape a random news article (implement backend logic).');
     }

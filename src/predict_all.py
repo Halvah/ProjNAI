@@ -5,14 +5,14 @@ from transformers import (
     RobertaTokenizer, RobertaForSequenceClassification
 )
 
-bert_model = BertForSequenceClassification.from_pretrained("./models/fake-news-bert-detect/outputs/bert-fine-tuned/model")
-bert_tokenizer = BertTokenizer.from_pretrained("./models/fake-news-bert-detect/outputs/bert-fine-tuned/tokenizer")
+bert_model = BertForSequenceClassification.from_pretrained("../models/fake-news-bert-detect/outputs/bert-fine-tuned/model")
+bert_tokenizer = BertTokenizer.from_pretrained("../models/fake-news-bert-detect/outputs/bert-fine-tuned/tokenizer")
 
-albert_model = AlbertForSequenceClassification.from_pretrained("./models/albert-fake-news/outputs/albert-fine-tuned/model")
-albert_tokenizer = AlbertTokenizer.from_pretrained("./models/albert-fake-news/outputs/albert-fine-tuned/tokenizer")
+albert_model = AlbertForSequenceClassification.from_pretrained("../models/albert-fake-news/outputs/albert-fine-tuned/model")
+albert_tokenizer = AlbertTokenizer.from_pretrained("../models/albert-fake-news/outputs/albert-fine-tuned/tokenizer")
 
-roberta_model = RobertaForSequenceClassification.from_pretrained("./models/roberta-fake-news/outputs/roberta-fine-tuned/model")
-roberta_tokenizer = RobertaTokenizer.from_pretrained("./models/roberta-fake-news/outputs/roberta-fine-tuned/tokenizer")
+roberta_model = RobertaForSequenceClassification.from_pretrained("../models/roberta-fake-news/outputs/roberta-fine-tuned/model")
+roberta_tokenizer = RobertaTokenizer.from_pretrained("../models/roberta-fake-news/outputs/roberta-fine-tuned/tokenizer")
 
 def predict_with_model(model, tokenizer, text):
     inputs = tokenizer(text, truncation=True, padding="max_length",
@@ -27,9 +27,9 @@ def get_all_predictions(text):
     albert_probs = predict_with_model(albert_model, albert_tokenizer, text)
     roberta_probs = predict_with_model(roberta_model, roberta_tokenizer, text)
     return {
-        "bert": bert_probs,
-        "albert": albert_probs,
-        "roberta": roberta_probs
+        "bert": f"Probability it's true: {100*bert_probs[1]:.2f}%",
+        "albert": f"Probability it's true: {100*albert_probs[1]:.2f}%",
+        "roberta": f"Probability it's true: {100*roberta_probs[1]:.2f}%"
     }
 
 # Example usage:
